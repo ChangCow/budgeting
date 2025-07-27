@@ -34,19 +34,50 @@
         </main>
     </div>
     <script>
-        const ctx = document.getElementById('disposableIncomeChart').getContext('2d');
-        new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: <%- JSON.stringify(chartData.labels) %>,
-                datasets: [{
-                    label: 'Disposable Income',
-                    data: <%- JSON.stringify(chartData.data) %>,
-                    borderColor: 'rgb(75, 192, 192)',
-                    tension: 0.1
-                }]
+    const ctx = document.getElementById('disposableIncomeChart').getContext('2d');
+    const chartData = <%- JSON.stringify(chartData) %>;
+    const dailyNetChanges = chartData.dailyNetChanges;
+
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: chartData.labels,
+            datasets: [{
+                label: 'Disposable Income',
+                data: chartData.data,
+                borderColor: 'rgb(75, 192, 192)',
+                tension: 0.1
+            }]
+        },
+        options: {
+            tooltips: {
+                callbacks: {
+                    label: function(tooltipItem, data) {
+                        let label = data.datasets[tooltipItem.datasetIndex].label || '';
+
+                        if (label) {
+                            label += ': ';
+                        }
+                        label += '$' + tooltipItem.yLabel;
+                        return label;
+                    },
+                    afterLabel: function(tooltipItem, data) {
+                        const date = tooltipItem.xLabel;
+                        const netChange = dailyNetChanges[date];
+
+                        if (netChange) {
+                            if (netChange > 0) {
+                                return `Income: $${netChange.toFixed(2)}`;
+                            } else {
+                                return `Expense: $${(-netChange).toFixed(2)}`;
+                            }
+                        }
+                        return null;
+                    }
+                }
             }
-        });
-    </script>
+        }
+    });
+</script>
 </body>
 </html>

@@ -112,11 +112,19 @@ async function main() {
     });
 
     // Graph Page
-    app.get('/graph', async (req, res) => {
-        const { startDate, endDate } = req.query;
-        let chartData = await calculateChartData(db, startDate, endDate);
-        res.render('graph', { chartData });
+app.get('/graph', async (req, res) => {
+    const { startDate, endDate } = req.query;
+    // The calculateChartData function now returns more data
+    let { labels, data, dailyNetChanges } = await calculateChartData(db, startDate, endDate);
+    res.render('graph', {
+        chartData: {
+            labels,
+            data,
+            // Pass dailyNetChanges to the template
+            dailyNetChanges
+        }
     });
+});
     
     app.post('/update-disposable-income', async (req, res) => {
         const { disposableIncome } = req.body;
@@ -305,7 +313,7 @@ async function calculateChartData(db, startDate, endDate) {
         data.push(currentBalance.toFixed(2));
     }
 
-    return { labels, data };
+    return { labels, data, dailyNetChanges };
 }
 
 main();
