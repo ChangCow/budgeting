@@ -1,6 +1,6 @@
 const express = require('express');
 const path = require('path');
-const { addWeeks, addMonths, addYears, format, startOfDay, isEqual, subDays, isBefore } = require('date-fns');
+const { addWeeks, addMonths, addYears, format, startOfDay, isEqual, subDays, isBefore, isToday } = require('date-fns');
 const setupDatabase = require('./database');
 
 const app = express();
@@ -13,14 +13,31 @@ app.use(express.urlencoded({ extended: true }));
 async function main() {
     const db = await setupDatabase();
 
-    // The GET '/' route is updated to show past and future expenses.
     app.get('/', async (req, res) => {
         const expensesToShow = [];
         const today = startOfDay(new Date());
         const futureLimit = addMonths(today, 6);
-        const pastLimit = addMonths(today, -3); // How far back to show expenses
+        const pastLimit = addMonths(today, -3);
 
         const allExpensesFromDb = await db.all('SELECT * FROM expenses ORDER BY description, startDate');
+
+        let totalWeekly = 0;
+        let totalMonthly = 0;
+        let totalYearly = 0;
+
+        allExpensesFromDb.forEach(expense => {
+            if (!expense.endDate) {
+                if (expense.frequency === 'weekly') {
+                    totalWeekly += expense.amount;
+                } else if (expense.frequency === 'monthly') {
+                    totalMonthly += expense.amount;
+                } else if (expense.frequency === 'yearly') {
+                    totalYearly += expense.amount;
+                }
+            }
+        });
+
+        const totalWeeklyExpense = totalWeekly + (totalMonthly / 4) + (totalYearly / 52);
 
         allExpensesFromDb.forEach(baseExpense => {
             baseExpense.startDate = new Date(baseExpense.startDate);
@@ -30,13 +47,10 @@ async function main() {
             let idealDate = new Date(baseExpense.startDate);
 
             while (idealDate <= futureLimit && (!baseExpense.endDate || idealDate <= baseExpense.endDate)) {
-                // Check if the idealDate is within the window we care about, to avoid unnecessary processing
-                // A bit of a buffer for adjustments that might move a date into the window
                 if (idealDate >= addMonths(pastLimit, -1)) {
                     const adjustment = baseExpense.adjustments.find(adj => isEqual(new Date(adj.originalDate), idealDate));
                     const displayDate = adjustment ? new Date(adjustment.newDate) : idealDate;
 
-                    // Add to list if it's within the display window
                     if (displayDate >= pastLimit && displayDate <= futureLimit) {
                         expensesToShow.push({ ...baseExpense, displayDate, originalDate: idealDate });
                     }
@@ -45,31 +59,30 @@ async function main() {
                 if (baseExpense.frequency === 'weekly') idealDate = addWeeks(idealDate, 1);
                 else if (baseExpense.frequency === 'monthly') idealDate = addMonths(idealDate, 1);
                 else if (baseExpense.frequency === 'yearly') idealDate = addYears(idealDate, 1);
-                else break; // Should not happen
+                else break;
             }
         });
 
         expensesToShow.sort((a, b) => a.displayDate - b.displayDate);
 
-        // Find the index of the first expense that is on or after today.
-        // This will be our scroll target.
-        const upcomingIndex = expensesToShow.findIndex(e => !isBefore(e.displayDate, today));
+        const recentBills = expensesToShow.filter(e => isBefore(e.displayDate, today));
+        const todaysBills = expensesToShow.filter(e => isToday(e.displayDate));
+        const upcomingBills = expensesToShow.filter(e => isBefore(today, e.displayDate));
 
         res.render('index', {
             allExpenses: allExpensesFromDb,
-            upcoming: expensesToShow,
+            recentBills,
+            todaysBills,
+            upcomingBills,
             format,
             formatForInput: (date) => format(date, "yyyy-MM-dd"),
-            upcomingIndex: upcomingIndex > -1 ? upcomingIndex : 0, // pass index, default to 0
+            totalWeeklyExpense: totalWeeklyExpense.toFixed(2),
         });
     });
-
-    // --- UNCHANGED CODE BELOW ---
 
     app.post('/add', async (req, res) => {
         const { description, amount, frequency, startDate } = req.body;
         if (description && amount && frequency && startDate) {
-            // FIX: Append 'T00:00' to ensure date is parsed in local timezone, not UTC.
             const cleanStartDate = new Date(startDate + 'T00:00').toISOString();
             await db.run(
                 'INSERT INTO expenses (description, amount, frequency, startDate, adjustments) VALUES (?, ?, ?, ?, ?)',
@@ -81,10 +94,7 @@ async function main() {
 
     app.post('/update', async (req, res) => {
         const { baseId, originalDateStr, newDateStr, propagate } = req.body;
-
-        // FIX: Append 'T00:00' to parse the new date string in the local timezone.
         const cleanNewDate = new Date(newDateStr + 'T00:00');
-        // The original date from the DB is already a full ISO string, so it's parsed correctly.
         const originalDate = new Date(originalDateStr);
         
         const expense = await db.get('SELECT * FROM expenses WHERE id = ?', [parseInt(baseId)]);

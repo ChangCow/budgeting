@@ -48,20 +48,20 @@
         </aside>
 
         <main class="main-content">
-            <h1>Upcoming & Recent Bills 🔥</h1>
+            <h1>Recent Bills 🗓️</h1>
             <div class="upcoming-list">
-                <% upcoming.forEach((item, index) => { %>
-                    <div class="upcoming-item" id="expense-<%= index %>">
+                <% recentBills.forEach((item, index) => { %>
+                    <div class="upcoming-item" id="recent-expense-<%= index %>">
                         <div class="item-content">
                             <div class="date-tag"><%= format(item.displayDate, 'MMM dd') %></div>
                             <div class="details">
                                 <span class="description"><%= item.description %></span>
                                 <span class="amount">-$<%= item.amount.toFixed(2) %></span>
                             </div>
-                            <button class="edit-btn" onclick="document.getElementById('edit-form-<%= index %>').style.display='flex'">Edit</button>
+                            <button class="edit-btn" onclick="document.getElementById('edit-form-recent-<%= index %>').style.display='flex'">Edit</button>
                         </div>
                         
-                        <form action="/update" method="POST" class="edit-form" id="edit-form-<%= index %>">
+                        <form action="/update" method="POST" class="edit-form" id="edit-form-recent-<%= index %>">
                             <input type="hidden" name="baseId" value="<%= item.id %>">
                             <input type="hidden" name="originalDateStr" value="<%= item.originalDate.toISOString() %>">
                             
@@ -73,7 +73,70 @@
                             
                             <div class="form-actions">
                                 <button type="submit">Save</button>
-                                <button type="button" class="cancel-btn" onclick="document.getElementById('edit-form-<%= index %>').style.display='none'">Cancel</button>
+                                <button type="button" class="cancel-btn" onclick="document.getElementById('edit-form-recent-<%= index %>').style.display='none'">Cancel</button>
+                            </div>
+                        </form>
+                    </div>
+                <% }) %>
+            </div>
+
+            <h1 id="total-weekly-expenses">Total Weekly Expenses: $<%= totalWeeklyExpense %> 💰</h1>
+
+            <h1>Today's/Upcoming Bills 🔥</h1>
+            <div class="upcoming-list">
+                <% todaysBills.forEach((item, index) => { %>
+                    <div class="upcoming-item" id="today-expense-<%= index %>">
+                        <div class="item-content">
+                            <div class="date-tag">Today</div>
+                            <div class="details">
+                                <span class="description"><%= item.description %></span>
+                                <span class="amount">-$<%= item.amount.toFixed(2) %></span>
+                            </div>
+                            <button class="edit-btn" onclick="document.getElementById('edit-form-today-<%= index %>').style.display='flex'">Edit</button>
+                        </div>
+                        
+                        <form action="/update" method="POST" class="edit-form" id="edit-form-today-<%= index %>">
+                            <input type="hidden" name="baseId" value="<%= item.id %>">
+                            <input type="hidden" name="originalDateStr" value="<%= item.originalDate.toISOString() %>">
+                            
+                            <input type="date" name="newDateStr" value="<%= formatForInput(item.displayDate) %>">
+                            
+                            <label class="propagate-label">
+                                <input type="checkbox" name="propagate"> Propagate?
+                            </label>
+                            
+                            <div class="form-actions">
+                                <button type="submit">Save</button>
+                                <button type="button" class="cancel-btn" onclick="document.getElementById('edit-form-today-<%= index %>').style.display='none'">Cancel</button>
+                            </div>
+                        </form>
+                    </div>
+                <% }) %>
+
+                <% upcomingBills.forEach((item, index) => { %>
+                    <div class="upcoming-item" id="upcoming-expense-<%= index %>">
+                        <div class="item-content">
+                            <div class="date-tag"><%= format(item.displayDate, 'MMM dd') %></div>
+                            <div class="details">
+                                <span class="description"><%= item.description %></span>
+                                <span class="amount">-$<%= item.amount.toFixed(2) %></span>
+                            </div>
+                            <button class="edit-btn" onclick="document.getElementById('edit-form-upcoming-<%= index %>').style.display='flex'">Edit</button>
+                        </div>
+                        
+                        <form action="/update" method="POST" class="edit-form" id="edit-form-upcoming-<%= index %>">
+                            <input type="hidden" name="baseId" value="<%= item.id %>">
+                            <input type="hidden" name="originalDateStr" value="<%= item.originalDate.toISOString() %>">
+                            
+                            <input type="date" name="newDateStr" value="<%= formatForInput(item.displayDate) %>">
+                            
+                            <label class="propagate-label">
+                                <input type="checkbox" name="propagate"> Propagate?
+                            </label>
+                            
+                            <div class="form-actions">
+                                <button type="submit">Save</button>
+                                <button type="button" class="cancel-btn" onclick="document.getElementById('edit-form-upcoming-<%= index %>').style.display='none'">Cancel</button>
                             </div>
                         </form>
                     </div>
@@ -84,8 +147,7 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', (event) => {
-            const upcomingIndex = <%= upcomingIndex %>;
-            const element = document.getElementById(`expense-${upcomingIndex}`);
+            const element = document.getElementById('total-weekly-expenses');
             if (element) {
                 element.scrollIntoView({ block: 'center', behavior: 'auto' });
             }
