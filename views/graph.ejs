@@ -11,7 +11,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-    <div class="container">
+    <div class="container container-graph">
         <nav class="main-nav">
             <a href="/">Home</a>
             <a href="/expenses">Expenses</a>
@@ -26,8 +26,10 @@
                 <input type="date" name="endDate">
                 <button type="submit">Update Range</button>
             </form>
-            <form action="/update-disposable-income" method="POST" class="expense-form">
-            <input type="number" name="disposableIncome" placeholder="Set Current Balance" step="0.01" required>                <button type="submit">Update</button>
+            <form action="/adjust-balance" method="POST" class="expense-form" style="margin-top: 1rem;">
+                <input type="date" name="date" required>
+                <input type="number" name="amount" placeholder="Set Correct Balance" step="0.01" required>
+                <button type="submit">Adjust Balance</button>
             </form>
         </main>
     </div>

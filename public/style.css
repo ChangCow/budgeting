@@ -265,3 +265,13 @@ h1, h2 {
 .main-nav a:hover {
     color: var(--primary-color);
 }
+
+/* --- Graph Page Specific Styles --- */
+.container.container-graph {
+    grid-template-columns: 1fr; /* Change to a single-column layout */
+}
+
+.container-graph .main-content {
+    max-height: none; /* Allow graph to use more vertical space */
+    overflow-y: visible;
+}

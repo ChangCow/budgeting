@@ -27,6 +27,12 @@ async function setupDatabase() {
             key TEXT PRIMARY KEY,
             value TEXT
         );
+
+                CREATE TABLE IF NOT EXISTS balance_adjustments (
+            date TEXT PRIMARY KEY,
+            amount REAL NOT NULL
+        );
+
     `);
 
     // Initialize disposable income setting if it doesn't exist
