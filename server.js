@@ -110,12 +110,10 @@ async function main() {
         res.render('graph', { chartData });
     });
     
-    // Update Disposable Income
     app.post('/update-disposable-income', async (req, res) => {
         const { disposableIncome } = req.body;
         if (disposableIncome) {
             await db.run("UPDATE settings SET value = ? WHERE key = 'disposableIncome'", [parseFloat(disposableIncome)]);
-            await db.run("UPDATE settings SET value = ? WHERE key = 'lastResetDate'", [new Date().toISOString()]);
         }
         res.redirect('/graph');
     });
