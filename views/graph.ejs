@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financial Graph</title>
+    <link rel="stylesheet" href="/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+        <nav class="main-nav">
+            <a href="/">Home</a>
+            <a href="/expenses">Expenses</a>
+            <a href="/income">Income</a>
+            <a href="/graph">Graph</a>
+        </nav>
+        <main class="main-content">
+            <h1>Disposable Income Flow</h1>
+            <canvas id="disposableIncomeChart"></canvas>
+            <form action="/graph" method="GET">
+                <input type="date" name="startDate">
+                <input type="date" name="endDate">
+                <button type="submit">Update Range</button>
+            </form>
+            <form action="/update-disposable-income" method="POST" class="expense-form">
+                <input type="number" name="disposableIncome" placeholder="Manually set disposable income" step="0.01" required>
+                <button type="submit">Update</button>
+            </form>
+        </main>
+    </div>
+    <script>
+        const ctx = document.getElementById('disposableIncomeChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: <%- JSON.stringify(chartData.labels) %>,
+                datasets: [{
+                    label: 'Disposable Income',
+                    data: <%- JSON.stringify(chartData.data) %>,
+                    borderColor: 'rgb(75, 192, 192)',
+                    tension: 0.1
+                }]
+            }
+        });
+    </script>
+</body>
+</html>

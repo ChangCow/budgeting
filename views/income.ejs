@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Income Tracker</title>
+    <link rel="stylesheet" href="/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <nav class="main-nav">
+            <a href="/">Home</a>
+            <a href="/expenses">Expenses</a>
+            <a href="/income">Income</a>
+            <a href="/graph">Graph</a>
+        </nav>
+        <aside class="sidebar">
+            <h1>Add Income 💰</h1>
+            <form action="/income" method="POST" class="expense-form">
+                <input type="text" name="description" placeholder="What's the source?" required>
+                <input type="number" name="amount" placeholder="How much?" step="0.01" required>
+                <input type="date" name="date" required>
+                <button type="submit">Add It</button>
+            </form>
+        </aside>
+        <main class="main-content">
+            <h1>Recent Income</h1>
+            <div class="expense-list">
+                <% allIncome.forEach(income => { %>
+                    <div class="list-item">
+                        <span>
+                            <strong><%= income.description %></strong> - $<%= income.amount.toFixed(2) %>
+                            <small style="display: block; opacity: 0.7;">
+                                <%= format(new Date(income.date), 'MMM dd, yyyy') %>
+                            </small>
+                        </span>
+                    </div>
+                <% }) %>
+            </div>
+        </main>
+    </div>
+</body>
+</html>
