@@ -4,7 +4,7 @@ const { addWeeks, addMonths, addYears, format, startOfDay, isEqual, subDays, isB
 const setupDatabase = require('./database');
 
 const app = express();
-const PORT = 3000;
+const PORT = 3052;
 
 app.set('view engine', 'ejs');
 app.use(express.static(path.join(__dirname, 'public')));
@@ -127,7 +127,7 @@ async function main() {
         res.redirect('/');
     });
 
-    app.listen(PORT, () => {
+    app.listen(PORT, '0.0.0.0', () => {
         console.log(`Server is running at http://localhost:${PORT} 🚀`);
     });
 }
