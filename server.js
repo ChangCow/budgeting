@@ -173,19 +173,35 @@ async function main() {
 }
 
 async function calculateChartData(db, startDate, endDate) {
-    const lastResetDate = new Date((await db.get("SELECT value FROM settings WHERE key = 'lastResetDate'")).value);
+    const { value: disposableIncome } = await db.get("SELECT value FROM settings WHERE key = 'disposableIncome'");
+    const { value: lastResetDateStr } = await db.get("SELECT value FROM settings WHERE key = 'lastResetDate'");
     
+    const lastResetDate = new Date(lastResetDateStr);
     let rangeStart = startDate ? new Date(startDate) : subDays(new Date(), 30);
     let rangeEnd = endDate ? new Date(endDate) : new Date();
 
+    // Ensure the chart doesn't show data from before the last reset
     rangeStart = rangeStart < lastResetDate ? lastResetDate : rangeStart;
 
-    const allExpenses = await db.all('SELECT * FROM expenses WHERE startDate >= ?', [rangeStart.toISOString()]);
-    const allIncome = await db.all('SELECT * FROM income WHERE date >= ?', [rangeStart.toISOString()]);
+    // --- FIX 1: Fetch ALL data, do not filter by date here ---
+    const allExpenses = await db.all('SELECT * FROM expenses');
+    const allIncome = await db.all('SELECT * FROM income');
 
-    let transactions = [];
-    allIncome.forEach(inc => transactions.push({ date: new Date(inc.date), amount: inc.amount }));
+    // --- FIX 2: Group all transactions by day using a simple string ('yyyy-MM-dd') ---
+    const dailyNetChanges = {};
+
+    // Process Income
+    allIncome.forEach(inc => {
+        const incomeDate = new Date(inc.date);
+        // Only consider income within the chart's range
+        if (incomeDate >= rangeStart && incomeDate <= rangeEnd) {
+            const dateStr = format(incomeDate, 'yyyy-MM-dd');
+            if (!dailyNetChanges[dateStr]) dailyNetChanges[dateStr] = 0;
+            dailyNetChanges[dateStr] += inc.amount;
+        }
+    });
     
+    // Process Expenses
     allExpenses.forEach(baseExpense => {
         baseExpense.startDate = new Date(baseExpense.startDate);
         baseExpense.endDate = baseExpense.endDate ? new Date(baseExpense.endDate) : null;
@@ -193,13 +209,20 @@ async function calculateChartData(db, startDate, endDate) {
 
         let idealDate = new Date(baseExpense.startDate);
 
+        // Generate all occurrences of a recurring expense
         while(idealDate <= rangeEnd && (!baseExpense.endDate || idealDate <= baseExpense.endDate)) {
-            if (idealDate >= rangeStart) {
-                const adjustment = baseExpense.adjustments.find(adj => isEqual(new Date(adj.originalDate), idealDate));
-                const displayDate = adjustment ? new Date(adjustment.newDate) : idealDate;
-                transactions.push({ date: displayDate, amount: -baseExpense.amount });
+            // Find any date adjustments for this specific occurrence
+            const adjustment = baseExpense.adjustments.find(adj => isEqual(new Date(adj.originalDate), idealDate));
+            const displayDate = adjustment ? new Date(adjustment.newDate) : idealDate;
+
+            // Only consider expenses that actually fall within the chart's range
+            if (displayDate >= rangeStart && displayDate <= rangeEnd) {
+                const dateStr = format(displayDate, 'yyyy-MM-dd');
+                if (!dailyNetChanges[dateStr]) dailyNetChanges[dateStr] = 0;
+                dailyNetChanges[dateStr] -= baseExpense.amount;
             }
 
+            // Move to the next occurrence
             if (baseExpense.frequency === 'weekly') idealDate = addWeeks(idealDate, 1);
             else if (baseExpense.frequency === 'monthly') idealDate = addMonths(idealDate, 1);
             else if (baseExpense.frequency === 'yearly') idealDate = addYears(idealDate, 1);
@@ -207,16 +230,20 @@ async function calculateChartData(db, startDate, endDate) {
         }
     });
 
-    transactions.sort((a,b) => a.date - b.date);
-
-    let labels = [];
-    let data = [];
-    let currentBalance = parseFloat((await db.get("SELECT value FROM settings WHERE key = 'disposableIncome'")).value);
+    // --- Build the chart data using the reliable daily groups ---
+    const labels = [];
+    const data = [];
+    let currentBalance = parseFloat(disposableIncome);
 
     for (let d = new Date(rangeStart); d <= rangeEnd; d.setDate(d.getDate() + 1)) {
-        labels.push(format(d, 'yyyy-MM-dd'));
-        let dailyNet = transactions.filter(t => isToday(t.date)).reduce((sum, t) => sum + t.amount, 0);
-        currentBalance += dailyNet;
+        const dateStr = format(d, 'yyyy-MM-dd');
+        labels.push(dateStr);
+        
+        // If there was a net change on this day, apply it to the balance
+        if (dailyNetChanges[dateStr]) {
+            currentBalance += dailyNetChanges[dateStr];
+        }
+        
         data.push(currentBalance.toFixed(2));
     }
 
