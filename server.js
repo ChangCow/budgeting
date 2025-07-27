@@ -1,6 +1,6 @@
 const express = require('express');
 const path = require('path');
-const { addWeeks, addMonths, addYears, format, startOfDay, isEqual, subDays, isBefore, isToday, isAfter, differenceInWeeks, min, sub } = require('date-fns');
+const { addWeeks, addMonths, addYears, format, startOfDay, isEqual, subDays, isBefore, isToday, isAfter, differenceInWeeks, min, sub, subMonths } = require('date-fns');
 const setupDatabase = require('./database');
 
 const app = express();
@@ -192,16 +192,22 @@ async function main() {
 }
 
 async function calculateAverageWeeklyIncome(db) {
-    const allIncome = await db.all('SELECT * FROM income ORDER BY date ASC');
-    if (allIncome.length === 0) {
+    const today = new Date();
+    const threeMonthsAgo = subMonths(today, 3);
+
+    const allIncomeLastThreeMonths = await db.all('SELECT * FROM income WHERE date >= ? ORDER BY date ASC', [
+        threeMonthsAgo.toISOString()
+    ]);
+
+    if (allIncomeLastThreeMonths.length === 0) {
         return 0;
     }
 
-    const totalIncome = allIncome.reduce((sum, inc) => sum + inc.amount, 0);
-    const firstIncomeDate = new Date(allIncome[0].date);
-    const today = new Date();
+    const totalIncome = allIncomeLastThreeMonths.reduce((sum, inc) => sum + inc.amount, 0);
+    const firstIncomeDate = new Date(allIncomeLastThreeMonths[0].date);
 
-    // Get the number of weeks, ensuring it's at least 1 to avoid division by zero.
+    // Calculate the number of weeks from the first income transaction until today.
+    // Ensure it's at least 1 to avoid division by zero.
     const weeks = Math.max(1, differenceInWeeks(today, firstIncomeDate));
 
     return totalIncome / weeks;
@@ -216,13 +222,12 @@ async function calculateChartData(db, startDate, endDate) {
     const today = startOfDay(new Date());
 
     // --- 2. DEFINE CHART'S DATE RANGE ---
-    const rangeStart = startDate ? startOfDay(new Date(startDate)) : subDays(today, 30);
-    const rangeEnd = endDate ? startOfDay(new Date(endDate)) : addMonths(today, 3);
+    const rangeStart = startDate ? startOfDay(new Date(startDate)) : subMonths(today, 1);
+    const rangeEnd = endDate ? startOfDay(new Date(endDate)) : addMonths(today, 1);
 
-    const firstExpenseDates = allExpenses.map(e => startOfDay(new Date(e.startDate)));
-    const firstIncomeDates = allIncome.map(i => startOfDay(new Date(i.date)));
-    const allTransactionDates = [...firstExpenseDates, ...firstIncomeDates];
-    const historyStart = allTransactionDates.length > 0 ? min(allTransactionDates) : today;
+    const firstTransaction = min([...allExpenses.map(e => new Date(e.startDate)), ...allIncome.map(i => new Date(i.date)), today]);
+    const historyStart = startOfDay(firstTransaction);
+
 
     // --- 3. GROUP ALL REAL TRANSACTIONS BY DAY ---
     const dailyNetChanges = {};
@@ -235,14 +240,17 @@ async function calculateChartData(db, startDate, endDate) {
         let idealDate = startOfDay(new Date(baseExpense.startDate));
         const expenseEndDate = baseExpense.endDate ? startOfDay(new Date(baseExpense.endDate)) : null;
         const adjustments = JSON.parse(baseExpense.adjustments);
+
         while (idealDate <= rangeEnd && (!expenseEndDate || idealDate <= expenseEndDate)) {
             const adj = adjustments.find(a => isEqual(startOfDay(new Date(a.originalDate)), idealDate));
             const displayDate = adj ? startOfDay(new Date(adj.newDate)) : idealDate;
+
             if (displayDate <= rangeEnd) {
                 const dateStr = format(displayDate, 'yyyy-MM-dd');
                 if (!dailyNetChanges[dateStr]) dailyNetChanges[dateStr] = 0;
                 dailyNetChanges[dateStr] -= baseExpense.amount;
             }
+
             if (baseExpense.frequency === 'weekly') idealDate = addWeeks(idealDate, 1);
             else if (baseExpense.frequency === 'monthly') idealDate = addMonths(idealDate, 1);
             else if (baseExpense.frequency === 'yearly') idealDate = addYears(idealDate, 1);
@@ -250,40 +258,51 @@ async function calculateChartData(db, startDate, endDate) {
         }
     });
 
-    // --- 4. BUILD THE CHART DATA WITH ADJUSTMENTS & PREDICTIONS ---
-    const labels = [];
-    const data = [];
-    let currentBalance = 0; // Start with a zero balance at the beginning of history
-
-    for (let d = new Date(historyStart); d <= rangeEnd; d.setDate(d.getDate() + 1)) {
+    // --- 4. CALCULATE THE STARTING BALANCE ---
+    let currentBalance = 0;
+    for (let d = new Date(historyStart); d < rangeStart; d.setDate(d.getDate() + 1)) {
         const currentDay = startOfDay(d);
         const dateStr = format(currentDay, 'yyyy-MM-dd');
 
-        // Check for a manual balance adjustment for the *start* of this day
         const adjustment = allAdjustments.find(a => isEqual(startOfDay(new Date(a.date)), currentDay));
         if (adjustment) {
-            // If an adjustment exists, override the running balance completely.
+            currentBalance = adjustment.amount;
+        }
+
+        if (dailyNetChanges[dateStr]) {
+            currentBalance += dailyNetChanges[dateStr];
+        }
+    }
+
+
+    // --- 5. BUILD THE CHART DATA WITH PREDICTIONS ---
+    const labels = [];
+    const data = [];
+
+    for (let d = new Date(rangeStart); d <= rangeEnd; d.setDate(d.getDate() + 1)) {
+        const currentDay = startOfDay(d);
+        const dateStr = format(currentDay, 'yyyy-MM-dd');
+
+        const adjustment = allAdjustments.find(a => isEqual(startOfDay(new Date(a.date)), currentDay));
+        if (adjustment) {
             currentBalance = adjustment.amount;
         }
         
-        // Apply net change from any real transactions that occurred today
         if (dailyNetChanges[dateStr]) {
             currentBalance += dailyNetChanges[dateStr];
         }
 
-        // For future Thursdays, add the estimated income if no real income was recorded
         const isFutureThursday = isAfter(currentDay, today) && currentDay.getDay() === 4;
         if (isFutureThursday) {
             const hasRealIncome = allIncome.some(inc => isEqual(startOfDay(new Date(inc.date)), currentDay));
             if (!hasRealIncome) {
-                currentBalance += averageWeeklyIncome;
+                // Corrected line: Ensure we are performing numerical addition
+                currentBalance += parseFloat(averageWeeklyIncome);
             }
         }
         
-        if (currentDay >= rangeStart) {
-            labels.push(dateStr);
-            data.push(currentBalance.toFixed(2));
-        }
+        labels.push(dateStr);
+        data.push(currentBalance.toFixed(2));
     }
 
     return { labels, data };
