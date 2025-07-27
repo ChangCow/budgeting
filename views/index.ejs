@@ -48,10 +48,10 @@
         </aside>
 
         <main class="main-content">
-            <h1>Coming Up Shit 🔥</h1>
+            <h1>Upcoming & Recent Bills 🔥</h1>
             <div class="upcoming-list">
                 <% upcoming.forEach((item, index) => { %>
-                    <div class="upcoming-item">
+                    <div class="upcoming-item" id="expense-<%= index %>">
                         <div class="item-content">
                             <div class="date-tag"><%= format(item.displayDate, 'MMM dd') %></div>
                             <div class="details">
@@ -81,5 +81,15 @@
             </div>
         </main>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', (event) => {
+            const upcomingIndex = <%= upcomingIndex %>;
+            const element = document.getElementById(`expense-${upcomingIndex}`);
+            if (element) {
+                element.scrollIntoView({ block: 'center', behavior: 'auto' });
+            }
+        });
+    </script>
 </body>
 </html>
