@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Expense Tracker</title>
+    <link rel="stylesheet" href="/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <aside class="sidebar">
+            <h1>Add Expense 💸</h1>
+            <form action="/add" method="POST" class="expense-form">
+                <input type="text" name="description" placeholder="What's the expense?" required>
+                <input type="number" name="amount" placeholder="How much?" step="0.01" required>
+                <input type="date" name="startDate" required>
+                <select name="frequency" required>
+                    <option value="" disabled selected>How often?</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="monthly">Monthly</option>
+                    <option value="yearly">Yearly</option>
+                </select>
+                <button type="submit">Add It</button>
+            </form>
+
+            <h2 class="sidebar-title">Your Recurring Bills</h2>
+            <div class="expense-list">
+                <% allExpenses.sort((a, b) => a.description.localeCompare(b.description) || new Date(a.startDate) - new Date(b.startDate)).forEach(expense => { %>
+                    <div class="list-item">
+                        <span>
+                            <strong><%= expense.description %></strong> - $<%= expense.amount.toFixed(2) %> (<%= expense.frequency %>)
+                            <small style="display: block; opacity: 0.7;">
+                                From: <%= format(new Date(expense.startDate), 'MMM dd, yyyy') %>
+                                <% if (expense.endDate) { %>
+                                    To: <%= format(new Date(expense.endDate), 'MMM dd, yyyy') %>
+                                <% } %>
+                            </small>
+                        </span>
+                        <form action="/delete/<%= expense.id %>" method="POST">
+                            <button type="submit" class="delete-btn">🗑️</button>
+                        </form>
+                    </div>
+                <% }) %>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <h1>Coming Up Shit 🔥</h1>
+            <div class="upcoming-list">
+                <% upcoming.forEach((item, index) => { %>
+                    <div class="upcoming-item">
+                        <div class="item-content">
+                            <div class="date-tag"><%= format(item.displayDate, 'MMM dd') %></div>
+                            <div class="details">
+                                <span class="description"><%= item.description %></span>
+                                <span class="amount">-$<%= item.amount.toFixed(2) %></span>
+                            </div>
+                            <button class="edit-btn" onclick="document.getElementById('edit-form-<%= index %>').style.display='flex'">Edit</button>
+                        </div>
+                        
+                        <form action="/update" method="POST" class="edit-form" id="edit-form-<%= index %>">
+                            <input type="hidden" name="baseId" value="<%= item.id %>">
+                            <input type="hidden" name="originalDateStr" value="<%= item.originalDate.toISOString() %>">
+                            
+                            <input type="date" name="newDateStr" value="<%= formatForInput(item.displayDate) %>">
+                            
+                            <label class="propagate-label">
+                                <input type="checkbox" name="propagate"> Propagate?
+                            </label>
+                            
+                            <div class="form-actions">
+                                <button type="submit">Save</button>
+                                <button type="button" class="cancel-btn" onclick="document.getElementById('edit-form-<%= index %>').style.display='none'">Cancel</button>
+                            </div>
+                        </form>
+                    </div>
+                <% }) %>
+            </div>
+        </main>
+    </div>
+</body>
+</html>

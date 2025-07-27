@@ -1,0 +1,245 @@
+:root {
+    --bg-color: #1a1a2e;
+    --sidebar-color: #16213e;
+    --card-color: #0f3460;
+    --primary-color: #e94560;
+    --text-color: #e0e0e0;
+    --light-text: #a0a0a0;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Poppins', sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+h1, h2 {
+    color: white;
+    margin-bottom: 1rem;
+    font-weight: 600;
+}
+
+.container {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 2rem;
+    width: 90%;
+    max-width: 1200px;
+    background-color: var(--sidebar-color);
+    padding: 2rem;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+}
+
+/* --- Sidebar --- */
+.sidebar {
+    padding-right: 2rem;
+    border-right: 1px solid var(--card-color);
+}
+
+.expense-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.expense-form input, .expense-form select {
+    padding: 12px 15px;
+    border: none;
+    border-radius: 8px;
+    background-color: var(--card-color);
+    color: var(--text-color);
+    font-size: 1rem;
+}
+
+.expense-form input::placeholder {
+    color: var(--light-text);
+}
+
+.expense-form button {
+    padding: 12px;
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.expense-form button:hover {
+    background-color: #ff5b79;
+}
+
+.expense-list .list-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: var(--card-color);
+    padding: 10px 15px;
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+}
+
+.delete-btn {
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    color: var(--light-text);
+    transition: color 0.2s ease;
+}
+.delete-btn:hover {
+    color: var(--primary-color);
+}
+
+
+/* --- Main Content --- */
+.main-content {
+    max-height: 70vh;
+    overflow-y: auto;
+    padding-right: 10px;
+}
+
+.main-content::-webkit-scrollbar {
+    width: 8px;
+}
+.main-content::-webkit-scrollbar-thumb {
+    background-color: var(--primary-color);
+    border-radius: 4px;
+}
+.main-content::-webkit-scrollbar-track {
+    background-color: var(--card-color);
+}
+
+.upcoming-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background-color: var(--card-color);
+    padding: 1rem;
+    border-radius: 12px;
+    margin-bottom: 1rem;
+    border-left: 5px solid var(--primary-color);
+}
+
+.date-tag {
+    background-color: var(--primary-color);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-weight: 700;
+    text-align: center;
+}
+
+.details {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+
+.description {
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.amount {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #ff6b81; /* A lighter red for amounts */
+}
+
+.upcoming-item {
+    display: flex;
+    flex-direction: column; /* Allow edit form to appear below */
+    align-items: stretch;
+    background-color: var(--card-color);
+    padding: 1rem;
+    border-radius: 12px;
+    margin-bottom: 1rem;
+    border-left: 5px solid var(--primary-color);
+}
+
+.item-content {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    width: 100%;
+}
+
+.edit-btn {
+    margin-left: auto;
+    background-color: var(--sidebar-color);
+    color: var(--light-text);
+    border: 1px solid var(--bg-color);
+    padding: 5px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.edit-btn:hover {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.edit-form {
+    display: none; /* Hidden by default */
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--sidebar-color);
+}
+
+.edit-form input[type="datetime-local"] {
+    flex-grow: 1;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    border: none;
+    padding: 8px;
+    border-radius: 6px;
+}
+
+.propagate-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+}
+
+.form-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.form-actions button {
+    padding: 8px 15px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.form-actions button[type="submit"] {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.form-actions .cancel-btn {
+    background-color: var(--bg-color);
+    color: var(--light-text);
+}
