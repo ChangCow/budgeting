@@ -304,8 +304,12 @@ async function calculateChartData(db, startDate, endDate) {
         if (isFutureThursday) {
             const hasRealIncome = allIncome.some(inc => isEqual(startOfDay(new Date(inc.date)), currentDay));
             if (!hasRealIncome) {
-                // Corrected line: Ensure we are performing numerical addition
-                currentBalance += parseFloat(averageWeeklyIncome);
+                const weeklyIncome = parseFloat(averageWeeklyIncome);
+                currentBalance += weeklyIncome;
+                if (!dailyNetChanges[dateStr]) {
+                    dailyNetChanges[dateStr] = 0;
+                }
+                dailyNetChanges[dateStr] += weeklyIncome;
             }
         }
         
